@@ -10,18 +10,17 @@
       ></b-form-input>
       <div class="sort_btn">
         <b-form-select
-          @input="sort()"
+          @input="sort(search.text)"
           v-model="search.filter"
           :options="options"
         />
       </div>
     </div>
-
     <b-container class="home_row">
       <b-card-group deck v-for="comment in comments" :key="comment.id">
         <b-card
           :title="comment.name"
-          img-src="https://via.placeholder.com/150/92c952"
+          :img-src="comment.thumbnailUrl"
           img-height="150"
           img-width="50"
           img-alt="Image"
@@ -48,6 +47,7 @@ export default {
     return {
       comments: [],
       comments_data: [],
+      photos_data: [],
       result: [],
       search: { filter: null, text: "" },
       options: [
@@ -69,6 +69,12 @@ export default {
               body
             }
           }
+          photos(options: $options) {
+            data {
+              id
+              thumbnailUrl
+            }
+          }
         }
       `,
       variables: {
@@ -81,8 +87,10 @@ export default {
       },
       manual: true,
       result({ data }) {
-        this.comments = { ...data.comments.data };
-        this.comments_data = { ...data.comments };
+        this.photos_data = { ...data.photos };
+        this.comments = { ...data.comments };
+        this.comments = this.combined_data();
+        this.comments_data = this.comments;
       },
     },
   },
@@ -90,7 +98,7 @@ export default {
   methods: {
     search_text() {
       var inside = this;
-      this.comments = this.comments_data.data.filter(function(product) {
+      this.comments = this.comments_data.filter(function(product) {
         if (
           product.name
             .toLowerCase()
@@ -100,9 +108,16 @@ export default {
         }
       });
     },
-    sort() {
+    sort(searched_text) {
+      if (searched_text) {
+        this.input_text(this.comments);
+      } else {
+        this.input_text(this.comments_data);
+      }
+    },
+    input_text(comments) {
       if (this.search.filter == "a") {
-        this.comments = this.comments_data.data.sort(function(a, b) {
+        this.comments = comments.sort(function(a, b) {
           if (a.name < b.name) {
             return -1;
           }
@@ -112,7 +127,7 @@ export default {
           return 0;
         });
       } else if (this.search.filter == "d") {
-        this.comments = this.comments_data.data.sort(function(a, b) {
+        this.comments = comments.sort(function(a, b) {
           if (a.name < b.name) {
             return 1;
           }
@@ -122,6 +137,13 @@ export default {
           return 0;
         });
       }
+    },
+    combined_data() {
+      const comments_photos = this.comments.data.map((t1) => ({
+        ...t1,
+        ...this.photos_data.data.find((t2) => t2.id == t1.id),
+      }));
+      return comments_photos;
     },
   },
 };
